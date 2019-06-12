@@ -1,0 +1,27 @@
+---
+title: "DrexelRSeminarSummer19"
+output: html_document
+---
+Ok, this is my first effort at making a course in RStudio.
+
+To get to this point you've done the basics of getting R installed, RStudio, and connecting it to Git.
+
+You will want to Fork this Repo to make your own. 
+
+To get started you'll need to install some packages, they are:
+
+here, pacman, tidyverse
+
+In order to get started, you have an assignment: 
+I have provided in the data folder several files that include the test responses and the grades for two classes, as well as a grading key. 
+
+The first part of this course will get you going and require you to clean up this data - NO EXCEL!!!!
+
+I want a script that imports the data, combines it all into one dataframe, and that correlates the test score with the quiz 1 grade and quiz 2 grade.  
+
+
+```{r SetupEnvironment, echo=FALSE}
+pacman::p_load(here, tidyverse)
+
+```
+
