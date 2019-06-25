@@ -21,7 +21,112 @@ I want a script that imports the data, combines it all into one dataframe, and t
 
 
 ```{r SetupEnvironment, echo=FALSE}
-pacman::p_load(here, tidyverse)
+pacman::p_load(here, tidyverse, lubridate, CTT)
+
+
+TestDf = read_csv("data/AnonTestResponses - TestData1709to1812.csv")
+Grades17 = read_csv("data/AnonCourseGrades1712.csv")
+Grades18 = read_csv("data/AnonCourseGrades1812.csv")
+TestKey =  read_csv("data/TestKey.csv", col_names = F)
+
+
 
 ```
+
+Here I'll tidy up the TestDf.  Renaming the variables, and getting the time as a time and the section as a factor.  Then I don't really care about all of the text, I want the first letter in each of the TestQ columns.
+
+```{r TidyTestDF, echo= FALSE}
+
+TestDf %>%
+  rename( ID = `What is your 8 digit student id?`,
+          Section = `Which lecture section are you in?`) -> TestDf
+
+
+#There doesn't seem to be a good way to do this in dplyr...
+TstNames = data.frame(Tst = "TestQ", Item = seq(1:30))
+TstNames %>% unite(ItemNum, Tst, Item) -> TstNames
+colnames(TestDf)[4:33] <- t(TstNames)
+
+TestDf %>%
+  mutate(Timestamp = mdy_hms(Timestamp),
+         TestDate = date(Timestamp),
+         Section = factor(Section)) -> TestDf
+  
+TestDf %>%
+  mutate_at(vars(starts_with("TestQ")), list(~str_extract(., "[A-E]"))) ->TestDf
+
+
+
+```
+
+Now, I will tidy up the grades...
+
+```{r TidyGradeDF,echo=FALSE}
+
+Grades17 %>%
+  rename(Total = `Total [Total Pts: up to 500] |1403917`,
+         Percent = `Running Grade [Total Pts: up to 100] |1447324`,
+         HW = `HW [Total Pts: 100] |1447322`, 
+         Q1 = `Q1 [Total Pts: 100] |1447316`, 
+         Q2 = `Q2 [Total Pts: 100] |1447318`,
+         Labs = `Labs [Total Pts: 100] |1447319`) %>%
+  select(-`Final [Total Pts: 100] |1447315`) %>%
+  mutate(Percent = parse_number(Percent))-> Grades17
+
+Grades18 %>%
+  rename(Total = `Total [Total Pts: up to 490 Score] |1704781`,
+         Percent = `WeightedTotal [Total Pts: up to 98.5 Percentage] |1704782`,
+         HW = `Homework [Total Pts: 100 Score] |1719593`, 
+         Q1 = `Quiz1 [Total Pts: 90 Score] |1719589`, 
+         Q2 = `Quiz2 [Total Pts: 100 Score] |1719590`,
+         Labs = `LabGrade [Total Pts: 100 Score] |1719591`) %>%
+  select(ID, Total, Percent, HW, Q1, Q2, Labs) -> Grades18
+
+Grades = bind_rows(Grades17, Grades18)
+```
+
+Now that I have them all bound up, I can join the grades and the TestDf
+
+```{r JoinDataFrames, echo= FALSE}
+FullData = left_join(Grades, TestDf, by = "ID")
+
+KeyVector = as.vector(TestKey$X1)
+
+FullData %>%
+  select(starts_with("TestQ")) %>%
+  mutate(Scr = score(., KeyVector)$score) %>%
+  select(Scr) -> TestScore
+            
+FullData = bind_cols(FullData, TestScore)
+```
+
+
+Here I am going to set the pre and the post 
+
+```{r CleanDates, echo= FALSE}
+#take a look at the dates that are present
+table(FullData$TestDate)
+
+PreDates = c("2017-09-27", "2018-09-24", "2018-09-25", "2018-09-26", "2018-09-27", "2018-10-01")
+
+PostDates = c("2017-12-04", "2018-12-03", "2018-12-05")
+
+FullData %>%
+  mutate(PrePost = case_when(
+             as.character(TestDate) %in% PreDates  ~ "Pre",
+             as.character(TestDate) %in% PostDates ~ "Post")) -> FullData
+
+```
+
+```{r RunCorrelations, echo= FALSE}
+
+FullData %>%
+  group_by(PrePost) %>%
+  summarise(N = n(), 
+            AveTestSc = mean(Scr, na.rm = T), 
+            corQ1 = cor(Scr, Q1, use = "pairwise.complete.obs"), 
+            corQ2 = cor(Scr, Q2, use = "pairwise.complete.obs"))
+
+```
+
 
