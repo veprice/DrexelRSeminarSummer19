@@ -1,0 +1,18 @@
+---
+title: "DrexelRSeminarSummer19Week2"
+author: "Eric Brewe"
+date: "6/25/2019"
+output: html_document
+---
+
+Ok, this will set up the environment and load in our cleaned data from last time. 
+
+```{r setup, include=FALSE}
+pacman::p_load(here, tidyverse, lubridate, lsr)
+
+FullData = readRDS(file = "data/CleanTestData.Rda")
+
+```
+
+
+
