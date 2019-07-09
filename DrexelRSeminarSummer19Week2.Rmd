@@ -20,6 +20,11 @@ So first, if I want to do the ttest, I should check to see that my data are norm
 
 hist(FullData$Scr)
 
+
+```
+Well that is ugly... But it has pre and post data, so that makes more sense...lets see if we can make it better by splitting the data first. Also, these puppies are not normally distributed. 
+
+```{r CheckingAssumptionsFirst2, echo=FALSE}
 FullData %>%
   filter(PrePost == "Pre") %>%
   ggplot(aes(x=Scr)) + geom_histogram()
@@ -28,8 +33,11 @@ FullData %>%
   filter(PrePost == "Post") %>%
   ggplot(aes(x=Scr)) + geom_histogram()
 
+FullData %>%
+  filter(PrePost != "NA") %>%
+  ggplot(aes(x=Scr)) + geom_histogram() + facet_grid(. ~ PrePost)
 ```
-Well that is ugly... But it has pre and post data, so that makes more sense...lets see if we can make it better by splitting the data first. Also, these puppies are not normally distributed. 
+Well that is even uglier...these puppies are not normally distributed, if it were close, I might do a qq plot.  But for these we do not need to. 
 
 ```{r describingData, echo = F}
 FullData %>%
