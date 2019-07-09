@@ -145,3 +145,17 @@ This way, I can just call up the data in a new markdown document.
 After I run this once, I always use a comment hashtag to turn it off in case I accidentally run this whole markdown document again - that way I don't re-write the clean data unless I really intend to do so. 
 
 
+
+I noticed that I needed a grouping variable...so I made breakfast type and am going to re-save. 
+```{r}
+FullData %>%
+  distinct(ID) %>%
+  mutate(rnd = round(runif(nrow(.), min =  0, max = 10000), 0 ),
+         Breakfast = case_when(rnd <= 3333 ~ "Ham",
+                               rnd > 3333 & rnd < 6666 ~ "Yogurt",
+                               rnd >= 6666 ~ "Smoothie")) %>%
+  select(-rnd) %>%
+  left_join(x = FullData, y =., by = "ID" ) -> FullData
+```
+
+
