@@ -14,5 +14,143 @@ FullData = readRDS(file = "data/CleanTestData.Rda")
 
 ```
 
+So first, if I want to do the ttest, I should check to see that my data are normally distributed. 
 
+```{r CheckingAssumptionsFirst, echo=F}
+
+hist(FullData$Scr)
+
+FullData %>%
+  filter(PrePost == "Pre") %>%
+  ggplot(aes(x=Scr)) + geom_histogram()
+
+FullData %>%
+  filter(PrePost == "Post") %>%
+  ggplot(aes(x=Scr)) + geom_histogram()
+
+```
+Well that is ugly... But it has pre and post data, so that makes more sense...lets see if we can make it better by splitting the data first. Also, these puppies are not normally distributed. 
+
+```{r describingData, echo = F}
+FullData %>%
+  filter(PrePost != 'NA') %>%
+  group_by(PrePost) %>%
+  summarise(AvSc = mean(Scr, na.rm = T), StdSc = sd(Scr, na.rm = T), N = n())
+ 
+```
+
+It sort of looks like the is a difference between pre and post.
+So I will try to run a t-test. 
+
+```{r ttestV1, echo=FALSE}
+
+res <- t.test(Scr ~ PrePost, data = FullData, paired = TRUE)
+```
+It doesn't work because the data aren't matched (so more data cleaning.)
+
+```{r generateCleanDF, echo=FALSE}
+FullData %>%
+  select(ID,PrePost,Scr) %>%
+  filter(PrePost == "Pre") -> PreDf
+
+FullData %>%
+  select(ID,PrePost,Scr) %>%
+  filter(PrePost == "Post") -> PostDf
+
+PrePostDf = left_join(PreDf, PostDf, by = "ID")
+
+
+```
+
+One of the benefits of splitting your data is now you can do a scatterplot, which is generally a wise thing; lets do this:
+
+```{r scatterplotdata, echo=FALSE}
+
+ScatterPlot = ggplot(data = PrePostDf, mapping =  aes(x = Scr.x, y = Scr.y))
+  
+ScatterPlot = ScatterPlot + geom_point()
+
+ScatterPlot = ScatterPlot + geom_abline()
+
+ScatterPlot
+```
+
+
+
+So now we should be able to do this t-test
+
+```{r ttestV2, echo=FALSE}
+
+res <- t.test(PrePostDf$Scr.x, PrePostDf$Scr.y, paired = TRUE)
+res
+```
+So what did it do with all those NAs?  That might be important...
+
+```{r CountNAs, echo=F}
+
+PrePostDf %>%
+  summarise(PreNAs = sum(as.numeric(is.na(Scr.x))),
+            PostNAs = sum(as.numeric(is.na(Scr.y))))
+
+```
+Ok, in the pre it doesn't seem to be a problem, but in the post it sure looks like it is. As I see it, there are sort of two options...
+1. We can just cut down our data set by omitting all NAs.
+2. We can impute them...that is a question for another day.
+
+For now, I'll cut all data that is missing...there could easily be a problem with doing this, but for now we'll see (and at least we'll figure out how the ttest was performing the calculation)
+
+```{r ttestV3, echo= FALSE}
+
+PrePostDf %>%
+  filter(Scr.x != "NA" & Scr.y != "NA") -> PrePostNoNA
+
+res2 = t.test(PrePostNoNA$Scr.x, PrePostNoNA$Scr.y, paired = TRUE)
+res2
+```
+That is the exact same! So we know that the default is to just omit all NAs. Cool.
+
+There are just two problems remaining...first I want to know how to do the math on that shit, not just get the results. 
+
+I saw this awesome cheat sheet (https://lindeloev.github.io/tests-as-linear/linear_tests_cheat_sheet.pdf)
+
+and it has a more robust explanation here:
+https://lindeloev.github.io/tests-as-linear/
+
+
+```{r ttestv4, echo=FALSE}
+
+
+SimpleLM = lm(Scr ~ PrePost, data = FullData)
+summary(SimpleLM)
+```
+Note that we were able to do this without having to worry about making sure that the data frames were of the same length....But that does technically mean it is a different data set. So to get the same data set, I'll have to use the PrePostDf that I created before.  
+
+```{r ttestv5, echo=FALSE}
+
+SimpleLM2 = lm(Scr.y - Scr.x ~ 1, data = PrePostDf)
+summary(SimpleLM2)
+```
+And will you look at that - we get the exact same t, p, and difference as when we did the ttest with the same data set, great!  But we also get the note that there were 54 observations that were deleted due to missingness (no more guessing).
+
+
+So are we done?  Well, remember that we had data that were not at all normally distributed.  So, actually we have to do more...the conservative thing to do is to google what to do when your data are not normal and do that.  I've done the googling and it is a Wilcox test!
+
+```{r WilcoxTest, echo= F}
+
+WilRes = wilcox.test(PrePostDf$Scr.x, PrePostDf$Scr.y, paired = T)
+
+WilRes
+
+
+```
+So we can safely reject the null hypothesis that the scores on the pre and the post are the same. 
+
+And since it is nice to know that we can use a linear model in place of the t-test, we might check to see if it works for the Wilcox Test as well... but we have to introduce a signed rank function
+
+```{r WilcoxLM, echo= FALSE}
+
+signed_rank = function(x) sign(x) * rank(abs(x))
+WilRes2 = lm(formula = signed_rank(Scr.y - Scr.x) ~ 1, data = PrePostDf)
+summary(WilRes2)
+```
 
