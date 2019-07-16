@@ -1,0 +1,10 @@
+---
+title: "Stats HW 2"
+output: html_notebook
+---
+
+Take the dataset we worked with today and build up a grouping variable (PrePost) that corresponds to whether the test was done pre or post.  (See the github for guidance). 
+
+From there I want you to do a t-test on the pre and post data in order to answer the question, "Is the difference between pre and post data different than zero?"   You will need to be careful about what type of data you have and how you might go about doing the ttest. 
+
+You can have 1,000,000 bonus points if you re-do the ttest using a linear regression. 
