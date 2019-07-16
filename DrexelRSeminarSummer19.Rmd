@@ -85,7 +85,9 @@ Grades18 %>%
 Grades = bind_rows(Grades17, Grades18)
 ```
 
-Now that I have them all bound up, I can join the grades and the TestDf
+Now that I have them all bound up, I can join the grades and the TestDf. 
+
+Then, I go ahead and score the test, write the results to a new dataframe (TestScore), and then add this back into the FullData dataframe.
 
 ```{r JoinDataFrames, echo= FALSE}
 FullData = left_join(Grades, TestDf, by = "ID")
@@ -101,7 +103,7 @@ FullData = bind_cols(FullData, TestScore)
 ```
 
 
-Here I am going to set the pre and the post 
+Here I am going to set up the pre and the post variable. 
 
 ```{r CleanDates, echo= FALSE}
 #take a look at the dates that are present
@@ -114,7 +116,8 @@ PostDates = c("2017-12-04", "2018-12-03", "2018-12-05")
 FullData %>%
   mutate(PrePost = case_when(
              as.character(TestDate) %in% PreDates  ~ "Pre",
-             as.character(TestDate) %in% PostDates ~ "Post")) -> FullData
+             as.character(TestDate) %in% PostDates ~ "Post")) %>%
+  mutate(PrePost = factor(PrePost)) -> FullData
 
 ```
 
@@ -127,6 +130,32 @@ FullData %>%
             corQ1 = cor(Scr, Q1, use = "pairwise.complete.obs"), 
             corQ2 = cor(Scr, Q2, use = "pairwise.complete.obs"))
 
+```
+
+Now that I've gone ahead and cleaned the data sufficiently, I will save a copy of the clean dataframe (with a new name so as not to overwrite the original data.)
+This way, I can just call up the data in a new markdown document. 
+
+```{r SaveCleanData, echo= FALSE}
+
+#saveRDS(FullData, "data/CleanTestData.Rda")
+
+
+```
+
+After I run this once, I always use a comment hashtag to turn it off in case I accidentally run this whole markdown document again - that way I don't re-write the clean data unless I really intend to do so. 
+
+
+
+I noticed that I needed a grouping variable...so I made breakfast type and am going to re-save. 
+```{r}
+FullData %>%
+  distinct(ID) %>%
+  mutate(rnd = round(runif(nrow(.), min =  0, max = 10000), 0 ),
+         Breakfast = case_when(rnd <= 3333 ~ "Ham",
+                               rnd > 3333 & rnd < 6666 ~ "Yogurt",
+                               rnd >= 6666 ~ "Smoothie")) %>%
+  select(-rnd) %>%
+  left_join(x = FullData, y =., by = "ID" ) -> FullData
 ```
 
 

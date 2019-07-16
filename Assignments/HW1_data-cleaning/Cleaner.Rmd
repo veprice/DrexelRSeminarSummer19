@@ -1,0 +1,79 @@
+---
+title: "Assignment 1 Cleaner"
+author: "Virginia Price"
+date: "6/25/2019"
+output: html_document
+---
+
+``` {r SetupEnvironment, echo=FALSE}
+pacman::p_load(here, tidyverse,dplyr,lubridate)
+```
+
+## Assignment 1 Data Cleaner
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+Script purpose: clean & report quiz grades
+1. Imports grades and keys
+2. Combines all grade data into one dataframe
+3. Saves grade data in a single table of the following format
+
+### Import & Clean Columns
+#### Yearly Course Data
+1. Import Course Data
+2. Rename columns to make them pretty (and understandable)
+3. Extract only the columns we care about
+
+```{r course-grades}
+Course17 <- read_csv("AnonCourseGrades1712.csv")
+
+Course17 %>%  # take out Course7 data
+  rename(TotalPts = 'Total [Total Pts: up to 500] |1403917',
+         TotalPct = 'Running Grade [Total Pts: up to 100] |1447324',
+         HW = 'HW [Total Pts: 100] |1447322', 
+         Q1 = 'Q1 [Total Pts: 100] |1447316', 
+         Q2 = 'Q2 [Total Pts: 100] |1447318',
+         Labs = 'Labs [Total Pts: 100] |1447319') %>% #now take this with the renamed things
+  select(-'Final [Total Pts: 100] |1447315') %>% #gets rid of Final column
+  mutate(TotalPct = parse_number(TotalPct)) -> Course17 # turns percentage -> number
+
+Course18 <- read_csv("AnonCourseGrades1812.csv")
+Course18 %>%
+  rename(TotalPct = 'WeightedTotal [Total Pts: up to 98.5 Percentage] |1704782',
+         TotalPts = 'Total [Total Pts: up to 490 Score] |1704781',
+         Quiz1 = 'Quiz1 [Total Pts: 90 Score] |1719589',
+         Quiz2 = 'Quiz2 [Total Pts: 100 Score] |1719590',
+         Labs = 'LabGrade [Total Pts: 100 Score] |1719591',
+         HW = 'Homework [Total Pts: 100 Score] |1719593') %>%
+  select(ID,TotalPct,TotalPts,Quiz1,Quiz2,Labs,HW) -> Course18
+
+```
+
+### Exam Data
+1. Read in CSV
+2. Rename columns
+3. Extract Date Data
+```{r exam-data}
+#1
+ExamDf <- read_csv("AnonTestResponses - TestData1709to1812.csv")
+Key <- read_csv("TestKey.csv",col_names=F)
+
+#2
+ExamDf %>%
+  rename(ID = 'What is your 8 digit student id?',
+         Section = 'Which lecture section are you in?') -> ExamDf
+
+colnames(ExamDf)[4:ncol(ExamDf)] <- paste0("Q", 1:30)   #Replaces question column names with Q1...Q30
+
+#3
+ExamDf %>%
+  mutate(Timestamp = mdy_hms(Timestamp),
+         Timestamp = date(Timestamp)) -> ExamDf
+
+for (i in 4:ncol(ExamDf)){
+  str_sub(as.matrix(ExamDf[,i]),1,1) -> ExamDf[,i] 
+}
+```
+```{r test cell}
+
+```
