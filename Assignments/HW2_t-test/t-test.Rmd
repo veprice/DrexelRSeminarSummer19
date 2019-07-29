@@ -1,10 +1,96 @@
 ---
-title: "Stats HW 2"
-output: html_notebook
+title: "t-test"
+author: "Virginia Price"
+date: "7/29/2019"
+output: pdf_document
 ---
 
-Take the dataset we worked with today and build up a grouping variable (PrePost) that corresponds to whether the test was done pre or post.  (See the github for guidance). 
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(here, tidyverse, lubridate, lsr)
+```
 
-From there I want you to do a t-test on the pre and post data in order to answer the question, "Is the difference between pre and post data different than zero?"   You will need to be careful about what type of data you have and how you might go about doing the ttest. 
+I want you to do a t-test on the pre and post data in order to answer the question, "Is the difference between pre and post data different than zero?"   You will need to be careful about what type of data you have and how you might go about doing the ttest. 
 
 You can have 1,000,000 bonus points if you re-do the ttest using a linear regression. 
+
+```{r LoadData, echo=FALSE}
+TestData <-readRDS(file = "CleanTestData.Rda")
+```
+
+
+Turns out t.test doesn't really work with two datasets of different sizes, so break 'em up, remove all them NA's, and put them into a sweet single dataset.
+
+```{r Cleaning}
+PreData <- TestData %>%
+  select(ID,PrePost,Scr) %>%
+  filter(PrePost == "Pre") %>%
+  filter(Scr != 'NA') %>%
+  rename(Scr.Pre = "Scr")
+
+
+PostData <- TestData %>%
+  select(ID,PrePost,Scr) %>%
+  filter(PrePost == "Post") %>%
+  filter(Scr != 'NA') %>%
+  rename(Scr.Post = "Scr")
+
+PrePostDf <- left_join(PreData,PostData,by="ID")
+```
+
+## Can we do a t-test?
+In order for our t-test to be valid, our data needs to be approximately normally distributed! We can check by quickly doing some histograms.
+
+
+### Check to see if data is normally distributed
+```{r check-norm}
+# all the pre/post scores
+hist(TestData$Scr) 
+
+# just the pre-test scores
+TestData %>% 
+  filter(PrePost == "Pre") %>%
+  ggplot(aes(x=Scr)) + geom_histogram()
+
+# just the post-test scores
+TestData %>%  
+  filter(PrePost == "Post") %>%
+  ggplot(aes(x=Scr)) + geom_histogram()
+```
+
+They're SUPER not normally distributed, dang. AH WELL, FUCK IT, WHO CARES.
+
+(We do. We care. Otherwise you have bad science.)
+
+Given that our data are not normally distributed, under what conditions can we assume our t-test is valid? Enter: the *Wilcoxon/Mann-Whitney* test!
+
+```{r wilcox,echo=TRUE}
+wilcox.test(PrePostDf$Scr.Pre, PrePostDf$Scr.Post, paired = T)
+```
+Since V is big ($V = 1035$, $p<1.68\times10^{-9}$), it's reasonable to use a t-test. Because math.
+
+So let's do it!
+
+## Run the t-test
+
+```{r t-test, echo=TRUE}
+t.test(PrePostDf$Scr.Pre, PrePostDf$Scr.Post,paired=TRUE)
+
+```
+
+I tried to use the t-test Navarro uses, but it keeps giving me an "oucome variable must be numeric" error
+```{r t-test2}
+TD_tt <- TestData %>%
+  filter(Scr != 'NA')
+  
+TD_tt$Scr <- as.numeric(TD_tt$Scr)
+
+pairedSamplesTTest(
+  formula = Scr ~ PrePost,
+  data = TD_tt,
+  id = "ID")
+```
+
+Wooo, looks like there is a difference. On average, students scored higher on the post-test. Yay, improvement!
+
+## Doing 

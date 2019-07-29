@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ``` {r SetupEnvironment, echo=FALSE}
-pacman::p_load(here, tidyverse,dplyr,lubridate)
+pacman::p_load(here, tidyverse,dplyr,lubridate,CTT)
 ```
 
 ## Assignment 1 Data Cleaner
@@ -31,8 +31,8 @@ Course17 %>%  # take out Course7 data
   rename(TotalPts = 'Total [Total Pts: up to 500] |1403917',
          TotalPct = 'Running Grade [Total Pts: up to 100] |1447324',
          HW = 'HW [Total Pts: 100] |1447322', 
-         Q1 = 'Q1 [Total Pts: 100] |1447316', 
-         Q2 = 'Q2 [Total Pts: 100] |1447318',
+         Quiz1 = 'Q1 [Total Pts: 100] |1447316', 
+         Quiz2 = 'Q2 [Total Pts: 100] |1447318',
          Labs = 'Labs [Total Pts: 100] |1447319') %>% #now take this with the renamed things
   select(-'Final [Total Pts: 100] |1447315') %>% #gets rid of Final column
   mutate(TotalPct = parse_number(TotalPct)) -> Course17 # turns percentage -> number
@@ -47,33 +47,81 @@ Course18 %>%
          HW = 'Homework [Total Pts: 100 Score] |1719593') %>%
   select(ID,TotalPct,TotalPts,Quiz1,Quiz2,Labs,HW) -> Course18
 
+Courses <- bind_rows(Course17,Course18)
+
 ```
 
 ### Exam Data
 1. Read in CSV
 2. Rename columns
-3. Extract Date Data
+3. Remove everything except letter answer
+4. Simplify Time Stamp
+5. Timestamp -> Pre/Post Data
+6. Grade Exam
+
 ```{r exam-data}
-#1
+#1. Read in CSV
 ExamDf <- read_csv("AnonTestResponses - TestData1709to1812.csv")
 Key <- read_csv("TestKey.csv",col_names=F)
 
-#2
+# 2. Rename Columns
 ExamDf %>%
   rename(ID = 'What is your 8 digit student id?',
          Section = 'Which lecture section are you in?') -> ExamDf
 
 colnames(ExamDf)[4:ncol(ExamDf)] <- paste0("Q", 1:30)   #Replaces question column names with Q1...Q30
 
-#3
-ExamDf %>%
-  mutate(Timestamp = mdy_hms(Timestamp),
-         Timestamp = date(Timestamp)) -> ExamDf
-
+# 3. Remove everything except letter answer
 for (i in 4:ncol(ExamDf)){
   str_sub(as.matrix(ExamDf[,i]),1,1) -> ExamDf[,i] 
 }
-```
-```{r test cell}
 
+# 4. Simplify Time Stamp 
+ExamDf %>%  #removes h/m/s
+  mutate(Timestamp = mdy_hms(Timestamp),
+         Timestamp = date(Timestamp)) -> ExamDf 
+
+
+# 5. Time Stamp -> Pre/Post Data
+PreDates = c("2017-09-27", "2018-09-24", "2018-09-25", "2018-09-26", "2018-09-27", 
+             "2018-10-01")
+PostDates = c("2017-12-04", "2018-12-03", "2018-12-05")
+
+ExamDf %>%
+  mutate(PrePost = case_when(
+            as.character(Timestamp) %in% PreDates ~ "Pre",
+            as.character(Timestamp) %in% PostDates ~"Post")) %>%
+  mutate(PrePost = factor(PrePost)) -> ExamDf
+
+# 6. Grade Exam
+
+
+
+ExamDf$Scr <- NA
+for (i in 1:nrow(ExamDf)){
+  ans <- ExamDf[i,4:33]
+  log_score <- ans == t(Key)
+  sum_score <- sum(log_score,na.rm=TRUE)
+  ExamDf[i,"Scr"] <- sum_score*100/30 #final percent
+}
+
+```
+
+### Merge Semesters
+
+```{r merge-data}
+AllGrades <- left_join(Courses, ExamDf, by = "ID")
+
+# Save if necessary
+#saveRDS(AllGrades, "CleanTestData2.Rda")
+```
+
+### Calculate Correlations
+```{r correlations}
+AllGrades %>%
+  group_by(PrePost) %>%
+  summarise(N = n(), 
+            AveTestSc = mean(Scr, na.rm = T), 
+            corQ1 = cor(Scr, Q1), 
+            corQ2 = cor(Scr, Q2))
 ```

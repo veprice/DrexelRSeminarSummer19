@@ -1,0 +1,58 @@
+---
+title: "ANOVA"
+author: "Virginia Price"
+date: "7/29/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(here, tidyverse, lubridate, lsr)
+```
+
+The challenge for next week is to perform an ANOVA on the Scr variable, looking to see if there are mean differences on the basis of the Breakfast grouping variable on the Post data. 
+
+Bonus points to carry out the analysis using a linear model.
+
+Bonus, bonus points if you do an appropriate followup test.
+
+Bonus, bonus, bonus points if you calculate appropriate effect sizes for any differences. 
+
+```{r LoadData}
+TestData <-readRDS(file = "CleanTestData2.Rda")
+Breakfast <- readRDS(file = "CleanTestData.Rda")
+TestData$Breakfast <- Breakfast$Breakfast
+rm(Breakfast)
+# Read in the datas
+
+# Do the same restructuring as we did for the t-test
+PreData <- TestData %>%
+  select(ID,PrePost,Scr,Breakfast) %>%
+  filter(PrePost == "Pre") %>%
+  rename(Scr.Pre = "Scr",
+         Breakfast.Pre = "Breakfast")
+
+
+PostData <- TestData %>%
+  select(ID,PrePost,Scr,Breakfast) %>%
+  filter(PrePost == "Post") %>%
+  rename(Scr.Post = "Scr",
+         Breakfast.Post = "Breakfast")
+
+PrePostDf <- left_join(PreData,PostData,by="ID")
+
+```
+
+Data is all set up and ready for ANOVA-ing!
+
+```{r anova-01}
+Nova <- aov(
+  formula = Scr.Post ~ Breakfast.Post,
+  data = PostData
+)
+
+summary(Nova)
+
+```
+
+
