@@ -77,9 +77,16 @@ So let's do it!
 t.test(PrePostDf$Scr.Pre, PrePostDf$Scr.Post,paired=TRUE)
 
 ```
+Wooo, looks like there is a difference. On average, students scored higher on the post-test. Yay, improvement!
 
+But what's the total effect size?
+```{r cohenD, echo=True}
+cohensD( x = PrePostDf$Scr.Post,
+         y = PrePostDf$Scr.Pre,
+         method="paired")
+```
 I tried to use the t-test Navarro uses, but it keeps giving me an "oucome variable must be numeric" error
-```{r t-test2}
+```{r t-test2, eval=FALSE}
 TD_tt <- TestData %>%
   filter(Scr != 'NA')
   
@@ -91,6 +98,6 @@ pairedSamplesTTest(
   id = "ID")
 ```
 
-Wooo, looks like there is a difference. On average, students scored higher on the post-test. Yay, improvement!
+
 
 ## Doing 
