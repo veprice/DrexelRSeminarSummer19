@@ -55,4 +55,25 @@ summary(Nova)
 
 ```
 
+"We cannot reject the null hypothesis that there is a difference in means of the post-test scores based on the grouping variable Breakfast" p>0.885
 
+p-value: how much of the time are we willing to reject the null hypothesis (be wrong)
+
+### Effect size
+$ \eta^2 = \frac{SS_{group}}{SS_{residuals}} = \frac{146}{91415}
+
+```{r eta-squared}
+etaSquared(x = Nova)
+```
+0 means no correlation, 1 is perfectly correlated.
+
+"The world is round p<.05"
+
+```{r pairwise-t-test}
+
+```
+
+Bad stuff happens if more than 3 groups. More groups need a more restrictive p-value
+If you run more than one pair you run a t-test on, you will probably get a type 1 error good p value. Need to be more constrained. 
+
+Bonferooni says if we run 20 t-tests, take p and divide by 20
