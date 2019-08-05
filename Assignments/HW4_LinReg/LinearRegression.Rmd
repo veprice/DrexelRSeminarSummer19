@@ -1,0 +1,117 @@
+---
+title: "Linear Regression"
+author: "Virginia Price"
+date: "8/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(here, tidyverse, lubridate, lsr,car)
+```
+
+### Assignment:
+Take the data set and use the Quiz #1 score to predict the Post Scr.  
+
+```{r import-data, echo=FALSE}
+TestData <-readRDS(file = "CleanTestData-Fixed.Rda")
+QuizPost <- TestData %>%
+  filter(PrePost == "Post") %>%
+  select(ID,Quiz1,Quiz2,Scr)
+```
+
+## Plot for Posterity
+
+If we scatter plot dis bitch, we can get an idea of what the data looks like to see if a linear regression might actually make sense. basically, does it look like these things could be correlated?
+
+```{r idea-plot}
+plot(x=QuizPost$Quiz1, y=QuizPost$Scr)
+```
+So, sorta. A human eye could definitely draw an approximate line through the data, going up-ish. But we should be good scientists and actually like... quantify... that, probably.
+
+GO R, DO YOUR STUFF
+
+```{r linreg-Quiz1}
+linreg.q1 <- lm(formula = Scr ~ Quiz1,
+             data = QuizPost)
+summary(linreg.q1)
+
+```
+Yay, so here's some important info:
+
+* Reject null hypothesis that there isn't a correlation ($p < 2 \times 10^{-9}$)
+* F-statistic is also nice & big, yay
+* The **coefficient of determination**, $R^2$, tells what percentage of the variance of the outcome is due to the predictor (in this case, $R^2 = 0.2099 = 21% of the variance)
+* Degrees of freedom: $N-K-1 = 156-1-1 = 154$ (remember, N = observations, K = predictors)
+
+## Checking the Model
+
+First I'm going to do an r chunk with all of the relevant plots, then go through them one by one below.
+
+```{r linreg-tests}
+plot( x = linreg.q1)
+```
+
+### Outliers
+First, look at the residuals of the individual observations. Are there any extreme outliers?
+
+```{r linreg-testoutliers}
+plot( x = linreg.q1, which=4) # Cook's distance
+plot( x = linreg.q1, which=5) # Residuals vs Leverage
+
+```
+
+The Cook's distance checks the craziness of the outlier; according to Navarro, a Cook's distance of <1 (or <4/N) tend to be okay.
+
+The second plot's red line shows how much the residual drifts over the trend line (which would be at the y=0 line, where the residuals would =0, right?) 
+
+### Normality of residuals
+
+Are the residuals normally distributed? Try a couple things: a histogram, run a Shapiro-Wilk test, and qq plot
+
+```{r linreg-testnormality}
+hist(x = linreg.q1$residuals) # hey, not too bad actually
+
+plot(x = linreg.q1, which = 2)
+
+shapiro.test(x = linreg.q1$residuals)
+
+```
+
+The Shapiro test's null hypothesis is that data *are* normally distributed, so if we reject the null hypothesis, that means our data *are not* normally distributed. In this case, p<0.01, so we could definitely reject the null hypothesis on this one -- our data are not normally distributed :/ 
+
+The histogram and qq plot also suggests a pretty non-normal distribution: it's almost bimodal? We have some pretty heavy tails. BUUUUUT idk how to deal with this so
+
+
+### Check the Linearity
+This essentially tells us how "linear" out data actually is. How much does the average value deviate from the line?
+```{r linreg-testlinearity}
+plot(x = linreg.q1, which=1) # Fitted values vs residuals
+residualPlots(model=linreg.q1) #fancierversion
+```
+Turns out deviations from the line are significant according to the t-test and Tukey Test. So this may not be a great assumption *either*; our data is sad and wiggly.
+
+### Homogeneity of variance
+How much do our residuals change over the trend line?
+```{r linreg-testhov}
+plot(x = linreg.q1, which = 3)
+ncvTest(linreg.q1)
+```
+Yay! Our p-value ($p>0.05) of the non-constant variance tests implies that our variances from the trend line are pretty constant over the data set.
+
+### Collinearity
+Well, we're only using one predictor here so this test isn't particularly useful.
+
+## Multiple Regression Model Possible?
+How closely is Quiz 1 score related to Quiz 2 score? If they're too related, it won't make sense to do a multiple regression model
+```{r linreg-BothQuizzes}
+linreg_q1a2 <- lm(formula = Quiz2 ~ Quiz1,
+             data = QuizPost)
+summary(linreg_q1a2)
+```
+
+
+
+Okay, yeah, so maybe let's not considering how correlated Quiz 1 is with Quiz 2.
+
+```
