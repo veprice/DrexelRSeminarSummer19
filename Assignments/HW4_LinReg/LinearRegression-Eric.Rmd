@@ -1,0 +1,70 @@
+---
+title: "DrexelRSeminarSummer19Week4"
+author: "Eric Brewe"
+date: "8/5/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(here, tidyverse, lubridate, lsr, broom)
+FullData = readRDS(file = "CleanTestData-Fixed.Rda")
+FullData %>%
+  filter(PrePost == "Post") -> PostData
+```
+
+Ok, this week the challenge is to do a linear regression model that predicts the outcome variable (Scr) from a predictor (Quiz1)...using only the post data, this isn't alltogether that interesting.  
+
+```{r LinearModel, echo=FALSE}
+Mod1 = lm(Scr ~ Quiz1, data = PostData)
+summary(Mod1)
+```
+The real challenge is understanding what this means....
+
+We get an intercept of 2.2668 (this means if you got a 0 on Quiz 1, your expected Scr would be 2.267)
+
+The coefficient for Q1 is 0.7299 (which incidentally is measured in %). So for every additional % on Q1, we would expect that the Scr goes up by 0.7299 points..Imagine I got a 5% on Quiz 1, you would then expect that my Scr would be 
+Scr = 0.7299*(5) + 2.2668 = 5.8813
+
+It also says that the predictor (Quiz1) is a significant predictor and the t-value is 6.397, this is a one sample t-test comparing the value of the coefficient to zero.  t = 0.7299/0.1141 = 6.39  So the t value compares the value of the coefficient to the standard error.   
+
+Chapter 15 does a really nice job of going through the analysis and checking a bunch of assumptions - and you should do all these things prior to publication.  One thing it doesn't do is a nice job of plotting.  So time for a brief dip into ggplot2. I really recommend printing out this cheatsheet.
+
+https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf
+
+run each of the pairs of commands together...this is how ggplot works, you can continue to add layers
+
+```{r Plotting, echo=FALSE}
+#This makes tells ggplot what data, and what variables go where...but doesn't plot anything yet.
+#aes: "aesthetic mapping"
+P1 = ggplot(data = PostData, aes(x = Quiz1, y = Scr))
+P1
+#This says, take the thing from before and plot it as a scatterplot
+P1 = P1 + geom_point()
+P1
+#This adds the regression line (with the standard error)
+P1 = P1 + geom_smooth(method = "lm")
+P1
+#This cleans up the look.
+P1 = P1 + theme_bw()
+P1
+#This adds a title
+P1 = P1 + ggtitle("Eric's Kickass Plot")
+P1
+#This is how you save a plot, don't run this..
+#ggsave("EricKickassPlot.pdf", plot = P1)
+```
+The last thing you might want to do is to use the model you have on new data. For example, you might have a class the next quarter, and you get a set of scores on quiz 1....how do you expect they will do on the Scr at the end? 
+
+I'll generate a new data set and we can use it to predict. 
+
+```{r Predict, echo=FALSE}
+#This generates the new data set...notice the variable has to be the same, eg, Qui1 has to be the name of the variable in order to make the prediction
+set.seed(123)
+NewQuiz1 = data.frame(Quiz1 = rnorm(30, mean = 65, sd = 15))
+ScrPred = predict(Mod1, NewQuiz1)
+hist(ScrPred)
+mean(ScrPred)
+```
+So with a quiz 1 score of 65, you might predict a Scr of 49.2 on the post, this does open up other means of evaluating your model (which is what data scientists do a ton of.)
+
+Previously I didn't have the seed set, and one time I ran it and it got a predicted score of 109...this can happen.  So set your seed folks.

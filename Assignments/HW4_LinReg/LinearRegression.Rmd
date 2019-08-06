@@ -2,7 +2,9 @@
 title: "Linear Regression"
 author: "Virginia Price"
 date: "8/5/2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,13 +13,14 @@ pacman::p_load(here, tidyverse, lubridate, lsr,car)
 ```
 
 ### Assignment:
-Take the data set and use the Quiz #1 score to predict the Post Scr.  
+Take the data set and use the Quiz #1 score to predict the Post Scr.
+Regression is best for continuous predictor & outcome variables.
 
 ```{r import-data, echo=FALSE}
 TestData <-readRDS(file = "CleanTestData-Fixed.Rda")
 QuizPost <- TestData %>%
   filter(PrePost == "Post") %>%
-  select(ID,Quiz1,Quiz2,Scr)
+  select(ID,Quiz1,Quiz2,Breakfast,Scr)
 ```
 
 ## Plot for Posterity
@@ -27,6 +30,7 @@ If we scatter plot dis bitch, we can get an idea of what the data looks like to 
 ```{r idea-plot}
 plot(x=QuizPost$Quiz1, y=QuizPost$Scr)
 ```
+
 So, sorta. A human eye could definitely draw an approximate line through the data, going up-ish. But we should be good scientists and actually like... quantify... that, probably.
 
 GO R, DO YOUR STUFF
@@ -37,6 +41,10 @@ linreg.q1 <- lm(formula = Scr ~ Quiz1,
 summary(linreg.q1)
 
 ```
+```{r idea-plot-line}
+plot(x=QuizPost$Quiz1, y=QuizPost$Scr)
+```
+
 Yay, so here's some important info:
 
 * Reject null hypothesis that there isn't a correlation ($p < 2 \times 10^{-9}$)
@@ -61,7 +69,7 @@ plot( x = linreg.q1, which=5) # Residuals vs Leverage
 
 ```
 
-The Cook's distance checks the craziness of the outlier; according to Navarro, a Cook's distance of <1 (or <4/N) tend to be okay.
+The Cook's distance checks the craziness of the outlier; according to Navarro, a Cook's distance of <1 (or <4/N) tend to be okay. Plus, make sure you understand your data and whether it's okay to throw out those points or not.
 
 The second plot's red line shows how much the residual drifts over the trend line (which would be at the y=0 line, where the residuals would =0, right?) 
 
@@ -113,5 +121,11 @@ summary(linreg_q1a2)
 
 
 Okay, yeah, so maybe let's not considering how correlated Quiz 1 is with Quiz 2.
+```{r linreg-BothQuizzes}
+linreg_q1a2 <- lm(formula = Scr ~ Quiz1 + Breakfast,
+             data = QuizPost)
+summary(linreg_q1a2)
+```
+```{r linreg-bothquiz-plot}
 
 ```
