@@ -1,0 +1,86 @@
+---
+title: "HW 5: Multiple Linear Regression"
+author: "Virginia Price"
+date: "8/12/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(here, tidyverse, lubridate, lsr,car)
+
+TestData <-readRDS(file = "CleanTestData-Fixed.Rda")
+Post <- TestData %>%
+  filter(PrePost == "Post") %>%
+  select(ID,HW,Labs,Quiz1,Quiz2,Scr) %>%
+  rename(Scr.Post = "Scr")
+
+Pre <- TestData %>%
+  filter(PrePost == "Pre") %>%
+  select(ID,HW,Labs,Quiz1,Quiz2,Scr) %>%
+  rename(Scr.Pre = "Scr")
+
+PrePost <- left_join(Pre,Post,by=c("ID","HW","Labs","Quiz1","Quiz2"))
+rm(Pre,Post)
+```
+
+We want to test the following relationships:
+
+Pre -> Scr
+HW -> Scr
+Labs -> Scr
+Quiz1 -> Scr
+Quiz2 -> Scr
+
+First, I'm going to test a model with NAs and without NAs to see if it makes a difference.
+
+```{r test-NAs}
+LabLM_noNA <- PrePost %>%
+  filter(is.na(Labs) == FALSE) %>%
+  filter(is.na(Scr.Post) == FALSE)
+lm1 <- lm(
+  formula = Scr.Post ~ Labs,
+  data = LabLM_noNA
+  )
+lm2 <- lm(
+  formula = Scr.Post ~ Labs,
+  data = PrePost
+  )
+
+summary(lm1)
+summary(lm2)
+
+rm(lm1,lm2,LabLM_noNA)
+```
+
+
+There's no difference, ye :D So we can go forward without having to filter NAs which is great.
+
+Let's do that multiple regression thing, k
+
+```{r regression-model}
+scr_pr <- lm(
+  formula = Scr.Post ~ HW + Labs + Scr.Pre + Quiz1 + Quiz2,
+  data = PrePost
+)
+
+summary(scr_pr)
+```
+
+Well, we sure do get something! According to this model, the pre-score is the only relationship that we can use to reject the null hypothesis and it acounts for 70% of the variability in the post-score!
+
+BUT last week we showed that there was a significant correlation between the quiz scores and the post-score?! HOW CAN THIS BE?!
+
+We can use a hypothesis test (the t-test, woo) to test for covariances.
+Null hypothesis for a given coefficient: that the true regression coefficient is zero. 
+
+A couple things that set off alarm bells for me:
+* Median of residuals is -2, so distribution isn't exactly centered around zero.
+* 13.5 standard error on 78 degrees of freedom seems high
+
+So we do the VIF thing. VIF gives us the square of the standard error for the corresponding coefficient. So if it's significantly bigger than our correlation coefficient, we have a problem.
+
+So calculating out coefficients shows 
+```{r corr-test}
+
+```
